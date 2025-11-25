@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4">Admin Area</h2>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5>Set Matchup Winners</h5>
+    </div>
+    <div class="card-body">
+        {% if all_matchups %}
+        <form method="POST" action="/admin">
+            <input type="hidden" name="action" value="save_winners">
+            {% for matchup in all_matchups %}
+            <div class="mb-4 p-3 border rounded-3 bg-light">
+                <h6>{{ matchup.team1Name }} vs {{ matchup.team2Name }}</h6>
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-8">
+                        <select name="winner_matchup_{{ matchup.id }}" class="form-select">
+                            <option value="">Select Winning Team</option>
+                            <option value="{{ matchup.team1Id }}" {% if matchup.winnerTeamId==matchup.team1Id %}selected{% endif %}>{{ matchup.team1Name }}</option>
+                            <option value="{{ matchup.team2Id }}" {% if matchup.winnerTeamId==matchup.team2Id %}selected{% endif %}>{{ matchup.team2Name }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="hidden" name="matchup_id" value="{{ matchup.id }}">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">Set Winner & Recalculate Scores</button>
+                    </div>
+                </div>
+                {% if matchup.winnerTeamId %}
+                <p class="mt-2 mb-0 text-success">Current Winner: {% if matchup.winnerTeamId == matchup.team1Id %}{{ matchup.team1Name }}{% else %}{{ matchup.team2Name }}{% endif %}</p>
+                {% else %}
+                <p class="mt-2 mb-0 text-muted">Winner not yet set.</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </form>
+        {% else %}
+        <p>No matchups available to set winners for. Please create matchups in the User Area first.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

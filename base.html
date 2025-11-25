@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bowl Pick 'Em</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <style>
+        /* Custom CSS for improved aesthetics */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f8f9fa;
+            padding-top: 20px;
+        }
+
+        .container {
+            max-width: 960px;
+            margin-top: 20px;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 15px; /* Rounded corners for the main container */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        }
+
+        .navbar {
+            border-radius: 15px; /* Rounded corners for the navbar */
+            margin-bottom: 20px;
+            background-color: #007bff !important; /* Primary blue color */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .navbar-brand, .nav-link {
+            color: #ffffff !important; /* White text for navbar items */
+            font-weight: bold;
+        }
+
+        .navbar-nav .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2); /* Slightly transparent white for active link */
+            border-radius: 8px; /* Rounded corners for active link */
+        }
+
+        h1, h2, h3 {
+            color: #007bff; /* Primary blue color for headings */
+            margin-bottom: 20px;
+        }
+
+        .card {
+            border-radius: 10px; /* Rounded corners for cards */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            border-radius: 8px; /* Rounded corners for primary buttons */
+            transition: all 0.3s ease; /* Smooth transition for hover effects */
+        }
+
+            .btn-primary:hover {
+                background-color: #0056b3;
+                border-color: #0056b3;
+                transform: translateY(-2px); /* Slight lift on hover */
+            }
+
+        .btn-danger, .btn-warning, .btn-info, .btn-success, .btn-secondary, .btn-outline-primary {
+            border-radius: 8px; /* Rounded corners for all buttons */
+        }
+
+        .form-control, .form-select {
+            border-radius: 8px; /* Rounded corners for form inputs and selects */
+        }
+
+        .table {
+            border-radius: 10px;
+            overflow: hidden; /* Ensures rounded corners for table */
+        }
+
+            .table thead {
+                background-color: #007bff; /* Primary blue background for table headers */
+                color: white;
+            }
+
+            .table th, .table td {
+                vertical-align: middle; /* Vertically align table cell content */
+            }
+
+        .list-group-item {
+            border-radius: 8px; /* Rounded corners for list group items */
+            margin-bottom: 5px;
+            border: 1px solid #e9ecef;
+        }
+
+        .alert {
+            border-radius: 8px; /* Rounded corners for alerts */
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">🏈 Bowl Pick 'Em</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <!-- Active class based on current path for visual feedback -->
+                        <a class="nav-link {% if request.path == '/user' or '/user/manager/' in request.path %}active{% endif %}" href="/user">League Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/admin' %}active{% endif %}" href="/admin">Matchup Admin</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/standings' %}active{% endif %}" href="/standings">Standings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/projections' %}active{% endif %}" href="/projections">Projections</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content container -->
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1b5uH2b5U/j" crossorigin="anonymous"></script>
+</body>
+</html>
