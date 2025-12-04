@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4">Bowl Pick 'Em</h2>
+
+<!-- Card for creating new managers -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5>Create New Manager</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="/user">
+            <input type="hidden" name="action" value="create_manager">
+            <div class="input-group mb-3">
+                <input type="text" name="manager_name" class="form-control" placeholder="Manager Name" required>
+                <button type="submit" class="btn btn-primary">Create Manager</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Card for existing managers -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5>Existing Managers</h5>
+    </div>
+    <div class="card-body">
+        {% if managers %}
+        <ul class="list-group">
+            {% for manager in managers %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ manager.name }} (ID: {{ manager.id }})
+                <div>
+                    <form method="POST" action="/user" class="d-inline">
+                        <input type="hidden" name="action" value="select_manager">
+                        <input type="hidden" name="manager_id_select" value="{{ manager.id }}">
+                        <button type="submit" class="btn btn-sm btn-info me-2">Select</button>
+                    </form>
+                    <form method="POST" action="/user" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this manager and all their picks?');">
+                        <input type="hidden" name="action" value="delete_manager">
+                        <input type="hidden" name="manager_id" value="{{ manager.id }}">
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No managers created yet. Use the form above to create one.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Set the action URL for the matchup management card -->
+{% set matchup_management_action_url = url_for('user_area') %}
+<!-- Include the consolidated matchup management card -->
+{% include '_matchup_management.html' %}
+
+{% endblock %}

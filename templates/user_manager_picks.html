@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4">User Area - {{ manager.name }}'s Picks</h2>
+
+<a href="/user" class="btn btn-secondary mb-4">← Back to Manager Selection</a>
+
+<!-- Card for making picks -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5>Make Your Picks</h5>
+    </div>
+    <div class="card-body">
+        {% if all_matchups %}
+        <form method="POST" action="{{ url_for('user_area_manager_picks', manager_id=manager.id) }}">
+            <input type="hidden" name="action" value="save_pick">
+            {% for matchup in all_matchups %}
+            <div class="mb-4 p-3 border rounded-3 bg-light">
+                <h6>{{ matchup.team1Name }} vs {{ matchup.team2Name }}</h6>
+                <input type="hidden" name="matchup_id" value="{{ matchup.id }}">
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-6">
+                        <select name="pick_matchup_{{ matchup.id }}" class="form-select">
+                            <option value="">Select a Team</option>
+                            <option value="{{ matchup.team1Id }}" {% if existing_picks[matchup.id] and existing_picks[matchup.id].pickedTeamId==matchup.team1Id %}selected{% endif %}>{{ matchup.team1Name }}</option>
+                            <option value="{{ matchup.team2Id }}" {% if existing_picks[matchup.id] and existing_picks[matchup.id].pickedTeamId==matchup.team2Id %}selected{% endif %}>{{ matchup.team2Name }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select name="points_matchup_{{ matchup.id }}" class="form-select">
+                            <option value="">Assign Points</option>
+                            {% set current_pick_points = existing_picks[matchup.id].points if existing_picks[matchup.id] else -1 %}
+                            {% for point in available_points %}
+                            <option value="{{ point }}" {% if current_pick_points==point %}selected{% endif %}>{{ point }}</option>
+                            {% endfor %}
+                            <!-- If the current pick's points are not in available_points (meaning they are already used by this pick),
+                                 display them as selected. This handles cases where a user changes a pick but the points were already assigned. -->
+                            {% if current_pick_points != -1 and current_pick_points not in available_points %}
+                            <option value="{{ current_pick_points }}" selected>{{ current_pick_points }} (Currently assigned)</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-sm btn-success w-100">Save Pick</button>
+                    </div>
+                </div>
+                {% if matchup.winnerTeamId %}
+                <p class="mt-2 mb-0 text-success">Winner: {% if matchup.winnerTeamId == matchup.team1Id %}{{ matchup.team1Name }}{% else %}{{ matchup.team2Name }}{% endif %}</p>
+                {% else %}
+                <p class="mt-2 mb-0 text-muted">Winner not yet determined.</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </form>
+        {% else %}
+        <p>No matchups have been created yet. Please use the "Matchup Management (Global)" section below to create some matchups.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Set the action URL for the matchup management card -->
+{% set matchup_management_action_url = url_for('user_area_manager_picks', manager_id=manager.id) %}
+<!-- Include the consolidated matchup management card -->
+{% include '_matchup_management.html' %}
+
+{% endblock %}

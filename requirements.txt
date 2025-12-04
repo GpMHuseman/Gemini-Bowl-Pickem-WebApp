@@ -1,0 +1,7 @@
+Flask
+Flask-Cors
+firebase-admin
+firebase-functions
+pandas
+openpyxl
+gunicorn
