@@ -299,5 +299,5 @@ def projections_area():
     projections.sort(key=lambda x: float(x['probability'].strip('%')), reverse=True)
     return render_template('projections.html', projections=projections)
 
-if __name__ == '__main__':
-    app.run(debug=False, use_reloader=False, host='0.0.0.0', port=5000)
+#if __name__ == '__main__':
+    #app.run(debug=False, use_reloader=False, host='0.0.0.0', port=5000)
