@@ -18,9 +18,22 @@ def get_value_from_json(json_file, key, sub_key):
    except Exception as e:
        print("Error reading JSON file: ", e)
        
-print(get_value_from_json("web-bowl-pickem-firebase-adminsdk-fbsvc-abe019eb85.json", "db", "host")) # prints localhost
-# A secret key is required for Flask sessions to work.
-app.secret_key = get_value_from_json("flask-secret-key.json", "flask-key", "host")
+# --- Securely load secret key from file ---
+def load_secret_key():
+    try:
+        with open('flask-secret-key.json') as f:
+            secret_data = json.load(f)
+            print("Successfully loaded secret key from file.")
+            return secret_data['secret_key']
+    except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
+        print(f"--- CRITICAL ERROR ---")
+        print(f"Could not load secret key : {e}")
+        print("Falling back to a temporary, insecure key.")
+        # In a real production environment, you might want the app to fail here
+        return "temporary_insecure_key_for_development"
+
+app.secret_key = load_secret_key()
+# ------------------------------------------
 
 # Global Firebase variables, initialized on app startup.
 db = None
@@ -28,11 +41,12 @@ firebase_app = None
 app_id = None
 
 # Function to initialize Firebase Admin SDK.
+
 def initialize_firebase():
     global db, firebase_app, app_id
     if firebase_app is None: # Ensure Firebase is initialized only once
         try:
-            cred = credentials.Certificate("private/web-bowl-pickem-firebase-adminsdk-fbsvc-abe019eb85.json")
+            cred = credentials.Certificate("private/web-bowl-pickem-firebase-admin-v1.json")
             firebase_app = firebase_admin.initialize_app(cred)
             db = firestore.client()
             print("Firebase initialized successfully.")
@@ -52,19 +66,28 @@ def get_collection_path(collection_name):
 def index():
     return render_template('index.html')
 
+    
 @app.route('/user', methods=['GET', 'POST'])
 def user_area():
+   
     managers = []
     all_matchups = []
 
     if db:
-        managers_ref = db.collection(get_collection_path('managers'))
-        managers = [doc.to_dict() for doc in managers_ref.stream()]
-        managers.sort(key=lambda x: x.get('name', '').lower())
+        try:
+            managers_ref = db.collection(get_collection_path('managers'))
+            managers = [doc.to_dict() for doc in managers_ref.stream()]
+            managers.sort(key=lambda x: x.get('name', '').lower())
 
-        matchups_ref = db.collection(get_collection_path('matchups'))
-        all_matchups = [doc.to_dict() for doc in matchups_ref.stream()]
-        all_matchups.sort(key=lambda x: x.get('team1Name', '').lower())
+            matchups_ref = db.collection(get_collection_path('matchups'))
+            all_matchups = [doc.to_dict() for doc in matchups_ref.stream()]
+            all_matchups.sort(key=lambda x: x.get('team1Name', '').lower())
+        except Exception as e:
+            print("--- ERROR FETCHING FROM FIRESTORE ---")
+            print(f"An exception occurred: {e}")
+            print("-------------------------------------")
+            # Return an error page or message
+            return f"<h1>Error connecting to database</h1><p>Details: {e}</p>", 500
 
     if request.method == 'POST':
         action = request.form.get('action')
@@ -79,10 +102,10 @@ def user_area():
                     'totalScore': 0
                 })
         elif action == 'delete_manager':
-            manager_id = request.form.get('manager_id')
-            if manager_id and db:
-                db.collection(get_collection_path('managers')).document(manager_id).delete()
-                picks_ref = db.collection(get_collection_path('picks')).where('managerId', '==', manager_id)
+              manager_id_to_delete = request.form.get('manager_id') # Corrected from 'manager_id'
+              if manager_id_to_delete and db:
+                db.collection(get_collection_path('managers')).document(manager_id_to_delete).delete()
+                picks_ref = db.collection(get_collection_path('picks')).where('managerId', '==', manager_id_to_delete)
                 for pick_doc in picks_ref.stream():
                     pick_doc.reference.delete()
         elif action == 'select_manager':
