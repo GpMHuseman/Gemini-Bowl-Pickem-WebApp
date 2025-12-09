@@ -17,7 +17,7 @@
           command = [
             "bash"
             "-c"
-            "python3.11 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && GOOGLE_APPLICATION_CREDENTIALS='private/web-bowl-pickem-v2-firebase-adminsdk-fbsvc-74ac0e981e.json' gunicorn --workers 1 --bind 0.0.0.0:$PORT --access-logfile - --error-logfile - --log-level info app:app"
+            "python3.11 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && GOOGLE_APPLICATION_CREDENTIALS='private/web-bowl-pickem-v2-firebase-adminsdk-fbsvc-74ac0e981e.json' gunicorn --workers 1 --bind 0.0.0.0:$PORT --access-logfile - --error-logfile - --log-level info main:app"
           ];
           manager = "web";
         };
