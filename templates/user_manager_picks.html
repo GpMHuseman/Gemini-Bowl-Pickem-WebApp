@@ -13,7 +13,13 @@
     <div class="card-body">
         {% if all_matchups %}
         <form method="POST" action="{{ url_for('user_area_manager_picks', manager_id=manager.id) }}">
-            <input type="hidden" name="action" value="save_pick">
+            <input type="hidden" name="action" value="save_pick">            
+            <div class="mb-3">
+                <label for="tie_breaker_score" class="form-label fw-bold">Championship Total Score Tie-Breaker</label>
+                <input type="number" class="form-control" id="tie_breaker_score" name="tie_breaker_score" placeholder="Enter predicted total points" value="{{ manager.get('tieBreakerScore', '') }}">
+            </div>
+            <hr class="my-4">
+
             {% for matchup in all_matchups %}
             <div class="mb-4 p-3 border rounded-3 bg-light">
                 <h6>{{ matchup.team1Name }} vs {{ matchup.team2Name }}</h6>

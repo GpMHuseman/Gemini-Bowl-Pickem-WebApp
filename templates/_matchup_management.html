@@ -26,7 +26,14 @@
             <li class="list-group-item">
                 <div class="d-flex justify-content-between align-items-center">
                     <span>{{ matchup.team1Name }} vs {{ matchup.team2Name }}</span>
-                    <div>
+                    <div>                        
+                        Reorder buttons
+                        <form method="POST" action="{{ url_for('move_matchup', matchup_id=matchup.id, direction='up') }}" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary me-1" {% if loop.first %}disabled{% endif %}>↑</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('move_matchup', matchup_id=matchup.id, direction='down') }}" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary me-2" {% if loop.last %}disabled{% endif %}>↓</button>
+                        </form>
                         <!-- Link to the dedicated edit page -->
                         <a href="{{ url_for('edit_matchup_page', matchup_id=matchup.id, next=request.path) }}" class="btn btn-sm btn-warning me-2">Edit</a>
                         

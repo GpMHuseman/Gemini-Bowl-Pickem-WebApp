@@ -40,6 +40,57 @@ db = None
 firebase_app = None
 app_id = None
 
+def get_collection_path(collection_name):
+    if app_id:
+        return f"artifacts/{app_id}/public/data/{collection_name}"
+    return collection_name # Fallback for local testing
+
+# def _backfill_matchup_sort_order(db_client):
+#     """
+#     Finds any matchups that are missing a 'sortOrder' field and assigns them one.
+#     This is a data migration that runs on startup to ensure data integrity.
+#     """
+#     print("Running startup data migration for matchup sortOrder...")
+#     try:
+#         matchups_ref = db_client.collection(get_collection_path('matchups'))
+#         all_docs = list(matchups_ref.stream())
+        
+#         docs_to_update = []
+#         docs_with_order = []
+#         for doc in all_docs:
+#             doc_data = doc.to_dict()
+#             # Check for missing key or if the value is None
+#             if 'sortOrder' not in doc_data or doc_data.get('sortOrder') is None:
+#                 docs_to_update.append(doc)
+#             else:
+#                 docs_with_order.append(doc_data)
+
+#         if docs_to_update:
+#             print(f"Found {len(docs_to_update)} matchups missing sortOrder. Backfilling now...")
+#             next_sort_order = 1
+#             if docs_with_order:
+#                 # Find the max sort order, safely handling None and non-numeric values
+#                 max_order = 0
+#                 for d in docs_with_order:
+#                     order = d.get('sortOrder')
+#                     if isinstance(order, (int, float)):
+#                         if order > max_order:
+#                             max_order = order
+#                 next_sort_order = int(max_order) + 1
+            
+#             batch = db_client.batch()
+#             # Sort by ID for a consistent order before assigning new sort values
+#             docs_to_update.sort(key=lambda d: d.id)
+#             for doc in docs_to_update:
+#                 batch.update(doc.reference, {'sortOrder': next_sort_order})
+#                 next_sort_order += 1
+#             batch.commit()
+#             print("Successfully backfilled sortOrder for all missing matchups.")
+#         else:
+#             print("All matchups have a valid sortOrder. No migration needed.")
+#     except Exception as e:
+#         print(f"--- CRITICAL ERROR during sortOrder backfill migration: {e} ---")
+
 # Function to initialize Firebase Admin SDK.
 
 def initialize_firebase():
@@ -47,18 +98,15 @@ def initialize_firebase():
     if firebase_app is None: # Ensure Firebase is initialized only once
         try:
             cred = credentials.Certificate("private/web-bowl-pickem-firebase-admin-v1.json")
-            firebase_app = firebase_admin.initialize_app(cred)
+            firebase_app = firebase_admin.initialize_app()
             db = firestore.client()
             print("Firebase initialized successfully.")
+            # Run the data migration for sortOrder after db is initialized
+            _backfill_matchup_sort_order(db)
         except Exception as e:
             print(f"Error initializing Firebase: {e}")
 
 initialize_firebase()
-
-def get_collection_path(collection_name):
-    if app_id:
-        return f"artifacts/{app_id}/public/data/{collection_name}"
-    return collection_name # Fallback for local testing
 
 # --- Flask Routes ---
 
@@ -79,9 +127,9 @@ def user_area():
             managers = [doc.to_dict() for doc in managers_ref.stream()]
             managers.sort(key=lambda x: x.get('name', '').lower())
 
-            matchups_ref = db.collection(get_collection_path('matchups'))
+            matchups_ref = db.collection(get_collection_path('matchups')).order_by("sortOrder")
             all_matchups = [doc.to_dict() for doc in matchups_ref.stream()]
-            all_matchups.sort(key=lambda x: x.get('team1Name', '').lower())
+            #all_matchups.sort(key=lambda x: x.get('team1Name', '').lower())
         except Exception as e:
             print("--- ERROR FETCHING FROM FIRESTORE ---")
             print(f"An exception occurred: {e}")
@@ -117,6 +165,13 @@ def user_area():
             team1_name = request.form.get('team1_name')
             team2_name = request.form.get('team2_name')
             if team1_name and team2_name and db:
+                matchups_ref = db.collection(get_collection_path('matchups'))
+                # Get the highest sortOrder and add 1
+                last_matchups = matchups_ref.order_by("sortOrder", direction=firestore.Query.DESCENDING).limit(1).get()
+                new_sort_order = 1
+                if last_matchups:
+                    new_sort_order = last_matchups[0].to_dict()['sortOrder'] + 1
+                
                 matchup_id = str(uuid.uuid4())
                 db.collection(get_collection_path('matchups')).document(matchup_id).set({
                     'id': matchup_id,
@@ -124,7 +179,8 @@ def user_area():
                     'team2Name': team2_name,
                     'team1Id': str(uuid.uuid4()),
                     'team2Id': str(uuid.uuid4()),
-                    'winnerTeamId': None
+                    'winnerTeamId': None,
+                    'sortOrder': new_sort_order
                 })
         elif action == 'delete_matchup':
             matchup_id = request.form.get('matchup_id_delete')
@@ -149,9 +205,9 @@ def user_area_manager_picks(manager_id):
         return "Manager not found.", 404
     manager = manager_doc.to_dict()
 
-    matchups_ref = db.collection(get_collection_path('matchups'))
+    matchups_ref = db.collection(get_collection_path('matchups')).order_by("sortOrder")
     all_matchups = [doc.to_dict() for doc in matchups_ref.stream()]
-    all_matchups.sort(key=lambda x: x.get('team1Name', '').lower())
+    #all_matchups.sort(key=lambda x: x.get('team1Name', '').lower())
 
     picks_ref = db.collection(get_collection_path('picks')).where('managerId', '==', manager_id)
     existing_picks = {pick.get('matchupId'): pick for pick in [doc.to_dict() for doc in picks_ref.stream()]}
@@ -165,6 +221,15 @@ def user_area_manager_picks(manager_id):
         action = request.form.get('action')
 
         if action == 'save_pick':
+            tie_breaker_score_str = request.form.get('tie_breaker_score')
+            if tie_breaker_score_str and tie_breaker_score_str.isdigit():
+                tie_breaker_score = int(tie_breaker_score_str)
+                db.collection(get_collection_path('managers')).document(manager_id).set({
+                    'id': manager_id,
+                    'name': manager.get('name'),
+                    'totalScore': 0,
+                    'tieBreakerScore': tie_breaker_score
+                })
             matchup_ids = request.form.getlist('matchup_id')
             for matchup_id_pick in matchup_ids:
                 picked_team_id = request.form.get(f'pick_matchup_{matchup_id_pick}')
@@ -220,9 +285,9 @@ def edit_matchup_page(matchup_id):
 def admin_area():
     if not db: return "Database not initialized.", 500
 
-    matchups_ref = db.collection(get_collection_path('matchups'))
+    matchups_ref = db.collection(get_collection_path('matchups')).order_by("sortOrder")
     all_matchups = [doc.to_dict() for doc in matchups_ref.stream()]
-    all_matchups.sort(key=lambda x: x.get('team1Name', '').lower())
+    #all_matchups.sort(key=lambda x: x.get('team1Name', '').lower())
 
     if request.method == 'POST':
         matchup_ids = request.form.getlist('matchup_id')
@@ -248,6 +313,90 @@ def admin_area():
         return redirect(url_for('admin_area'))
         
     return render_template('admin.html', all_matchups=all_matchups)
+
+# @app.route('/admin/backfill_sort_order', methods=['POST'])
+# def backfill_sort_order():
+#     """
+#     Finds any matchups that are missing a 'sortOrder' field and assigns them one.
+#     This is useful for migrating data created before the reordering feature was added.
+#     """
+#     if not db:
+#         return "Database not initialized.", 500
+
+#     matchups_ref = db.collection(get_collection_path('matchups'))
+#     all_docs = list(matchups_ref.stream())
+    
+#     docs_to_update = []
+#     docs_with_order = []
+#     for doc in all_docs:
+#         doc_data = doc.to_dict()
+#         if 'sortOrder' not in doc_data or doc_data.get('sortOrder') is None:
+#             docs_to_update.append(doc)
+#         else:
+#             docs_with_order.append(doc_data)
+
+#     if docs_to_update:
+#         next_sort_order = 1
+#         if docs_with_order:
+#             # Find the max sort order, safely handling None values
+#             max_order = max(d.get('sortOrder', 0) for d in docs_with_order if d.get('sortOrder') is not None)
+#             next_sort_order = max_order + 1
+            
+#         batch = db.batch()
+#         # Sort by ID for a consistent order before assigning new sort values
+#         docs_to_update.sort(key=lambda d: d.id)
+#         for doc in docs_to_update:
+#             batch.update(doc.reference, {'sortOrder': next_sort_order})
+#             next_sort_order += 1
+#         batch.commit()
+
+#     return redirect(url_for('admin_area'))
+
+@app.route('/move-matchup/<matchup_id>/<direction>', methods=['POST'])
+def move_matchup(matchup_id, direction):
+    if not db: return "Database not initialized.", 500
+    
+    matchups_ref = db.collection(get_collection_path('matchups'))
+    
+    # Get all matchups, sorted
+    all_matchups = [doc for doc in matchups_ref.order_by("sortOrder").stream()]
+    
+    # Find the index of the matchup to move
+    doc_to_move_index = -1
+    for i, doc in enumerate(all_matchups):
+        if doc.id == matchup_id:
+            doc_to_move_index = i
+            break
+
+    if doc_to_move_index == -1:
+        return "Matchup not found", 404
+
+    # Determine the swap index
+    if direction == 'up' and doc_to_move_index > 0:
+        swap_index = doc_to_move_index - 1
+    elif direction == 'down' and doc_to_move_index < len(all_matchups) - 1:
+        swap_index = doc_to_move_index + 1
+    else:
+        return redirect(url_for('user_area')) # No move needed
+
+    # Get the two documents to swap
+    doc1 = all_matchups[doc_to_move_index]
+    doc2 = all_matchups[swap_index]
+
+    # Swap their sortOrder values
+    sort_order_1 = doc1.to_dict()['sortOrder']
+    sort_order_2 = doc2.to_dict()['sortOrder']
+    
+    # Perform the swap in a transaction
+    @firestore.transactional
+    def swap_order(transaction, ref1, ref2):
+        transaction.update(ref1, {'sortOrder': sort_order_2})
+        transaction.update(ref2, {'sortOrder': sort_order_1})
+
+    transaction = db.transaction()
+    swap_order(transaction, doc1.reference, doc2.reference)
+
+    return redirect(url_for('user_area'))
 
 @app.route('/standings')
 def standings_area():

@@ -6,6 +6,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "flask",
+            "cwd": "${workspaceFolder}",
             "env": {
                 "FLASK_APP": "main.py",
                 "FLASK_DEBUG": "1",
@@ -17,7 +18,10 @@
                 "--no-reload"
             ],
             "jinja": true,
-            "autoStartBrowser": false
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "Running on (https?://\\S+)"
+            }
         }
     ]
 }

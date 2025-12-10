@@ -29,7 +29,7 @@
         <ul class="list-group">
             {% for manager in managers %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                {{ manager.name }} (ID: {{ manager.id }})
+                {{ manager.name }} (Tie-breaker: {{ manager.tieBreakerScore }})
                 <div>
                     <form method="POST" action="/user" class="d-inline">
                         <input type="hidden" name="action" value="select_manager">
