@@ -15,6 +15,7 @@
                     <tr>
                         <th scope="col">Rank</th>
                         <th scope="col">Manager Name</th>
+                        <th scope="col">Tie Break</th>
                         <th scope="col">Total Score</th>
                         <th scope="col">Max Possible Score</th>
                     </tr>
@@ -24,6 +25,7 @@
                     <tr>
                         <td>{{ loop.index }}</td>
                         <td>{{ manager.name }}</td>
+                        <td>{{ manager.tieBreakerScore }}</td>
                         <td>{{ manager.totalScore }}</td>
                         <td>{{ manager.maxPossibleScore }}</td>
                     </tr>

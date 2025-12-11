@@ -98,7 +98,7 @@ def initialize_firebase():
     if firebase_app is None: # Ensure Firebase is initialized only once
         try:
             cred = credentials.Certificate("private/web-bowl-pickem-firebase-admin-v1.json")
-            firebase_app = firebase_admin.initialize_app()
+            firebase_app = firebase_admin.initialize_app(cred)
             db = firestore.client()
             print("Firebase initialized successfully.")
             # Run the data migration for sortOrder after db is initialized
@@ -416,6 +416,7 @@ def standings_area():
     standings_data = []
     for manager in all_managers:
         manager_id = manager['id']
+        tieBreaker = manager.get('tieBreakerScore', 0)
         total_score = manager.get('totalScore', 0)
         max_possible_score = total_score
         manager_picks = all_manager_picks.get(manager_id, {})
@@ -424,7 +425,7 @@ def standings_area():
             if matchup and matchup.get('winnerTeamId') is None:
                 max_possible_score += pick_data.get('points', 0)
         standings_data.append({
-            'name': manager['name'], 'totalScore': total_score, 'maxPossibleScore': max_possible_score
+            'name': manager['name'], 'totalScore': total_score, 'maxPossibleScore': max_possible_score, 'tieBreakerScore': tieBreaker
         })
     standings_data.sort(key=lambda x: x['totalScore'], reverse=True)
     return render_template('standings.html', standings=standings_data)
