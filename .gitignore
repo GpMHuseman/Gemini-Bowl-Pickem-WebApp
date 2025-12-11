@@ -8,3 +8,5 @@ __pycache__/
 # Secrets and credentials
 flask-secret-key.json
 private/
+
+.idx
